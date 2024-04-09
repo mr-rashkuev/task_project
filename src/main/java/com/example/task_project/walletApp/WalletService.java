@@ -5,6 +5,7 @@ import com.example.task_project.exception.BusinessException;
 import com.example.task_project.walletApp.dto.WalletTransactionRq;
 import com.example.task_project.walletApp.operation.Operation;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -29,26 +30,25 @@ public class WalletService {
                 .orElseThrow(() -> new BusinessException("Не найден кошелёк с id " + walletId));
     }
 
+    @Transactional
     public void makeWalletTransaction(WalletTransactionRq walletTransactionRq) {
         OperationType operationType = transformOperation(walletTransactionRq.getOperation());
-        WalletEntity wallet = walletRepository.findById(walletTransactionRq.getWalletId())
+        WalletEntity wallet = walletRepository.findWalletById(walletTransactionRq.getWalletId())
                 .orElseThrow(() -> new BusinessException("Не найден кошелёк с id " + walletTransactionRq.getWalletId()));
         Operation operation = operationMap.get(operationType);
-        if(operation == null){
+        if (operation == null) {
             throw new BusinessException("Неизвестный тип операции " + operationType);
         }
         BigDecimal balance = operation.apply(wallet.getBalance(), walletTransactionRq.getAmount());
         wallet.setBalance(balance);
         walletRepository.save(wallet);
-
     }
 
-    private OperationType transformOperation(String operationType){
-        try{
+    private OperationType transformOperation(String operationType) {
+        try {
             return OperationType.valueOf(operationType);
-        }catch (IllegalArgumentException e){throw new BusinessException("Operation может принимать значения DEPOSIT или WITHDRAW");
-
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException("Operation может принимать значения DEPOSIT или WITHDRAW");
         }
     }
-
 }
